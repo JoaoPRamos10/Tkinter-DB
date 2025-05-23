@@ -3,21 +3,17 @@ from tkinter import ttk, messagebox, simpledialog
 import mysql.connector
 from datetime import datetime
 
-# --- Configurações do Banco de Dados ---
 DB_HOST = "localhost"
 DB_USER = "root"
 DB_PASSWORD = ""
-DB_NAME = "sistema_vendas" # Alterado para o novo sistema
+DB_NAME = "sistema_vendas"
 
-# --- Funções do Banco de Dados ---
 def conectar_db():
-    """Conecta ao banco de dados MySQL."""
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD
-            # Database é conectado após verificar/criar
         )
         cursor = conn.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
@@ -28,7 +24,6 @@ def conectar_db():
         return None
 
 def criar_tabelas(conn):
-    """Cria as tabelas no banco de dados se não existirem."""
     if not conn:
         return
     cursor = conn.cursor()
@@ -77,23 +72,20 @@ def criar_tabelas(conn):
     finally:
         cursor.close()
 
-# --- Classe Principal da Aplicação ---
 class SistemaVendasApp:
     def __init__(self, root_tk):
         self.root = root_tk
         self.root.title("Sistema de Gestão de Vendas")
         self.root.geometry("900x700")
 
-        # Conectar e criar tabelas
         self.conn = conectar_db()
         if self.conn:
             criar_tabelas(self.conn)
         else:
-            self.root.quit() # Sai se não puder conectar
+            self.root.quit()
             return
 
-        # Variáveis para o formulário de pedido
-        self.itens_pedido_atual = [] # Lista para armazenar {produto_id, nome_produto, quantidade, preco_unitario, subtotal}
+        self.itens_pedido_atual = []
         self.cliente_selecionado_pedido = None
         self.total_pedido_atual = tk.DoubleVar(value=0.0)
 
@@ -101,14 +93,12 @@ class SistemaVendasApp:
         self.container_principal = tk.Frame(self.root)
         self.container_principal.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Tela inicial (pode ser um dashboard ou a primeira tela de cadastro)
         self.mostrar_tela_clientes()
 
     def criar_menu(self):
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
-        # Menu Cadastros
         menu_cadastros = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Cadastros", menu=menu_cadastros)
         menu_cadastros.add_command(label="Clientes", command=self.mostrar_tela_clientes)
@@ -117,7 +107,6 @@ class SistemaVendasApp:
         menu_cadastros.add_separator()
         menu_cadastros.add_command(label="Sair", command=self.root.quit)
 
-        # Menu Ajuda
         menu_ajuda = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Ajuda", menu=menu_ajuda)
         menu_ajuda.add_command(label="Sobre", command=self.mostrar_sobre)
@@ -135,13 +124,11 @@ class SistemaVendasApp:
             "facilitando o controle de vendas de um pequeno negócio."
         )
 
-    # --- Gerenciamento de Clientes ---
     def mostrar_tela_clientes(self):
         self.limpar_container_principal()
         frame_clientes = ttk.LabelFrame(self.container_principal, text="Gerenciamento de Clientes", padding=10)
         frame_clientes.pack(fill=tk.BOTH, expand=True)
 
-        # Formulário
         form_frame = ttk.Frame(frame_clientes, padding=10)
         form_frame.pack(fill=tk.X, pady=5)
 
@@ -161,12 +148,11 @@ class SistemaVendasApp:
         self.entry_cliente_email = ttk.Entry(form_frame, width=40)
         self.entry_cliente_email.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
 
-        form_frame.columnconfigure(1, weight=1) # Faz o entry expandir
+        form_frame.columnconfigure(1, weight=1)
 
         btn_adicionar_cliente = ttk.Button(form_frame, text="Adicionar Cliente", command=self.adicionar_cliente)
         btn_adicionar_cliente.grid(row=4, column=0, columnspan=2, pady=10)
 
-        # Treeview para listar clientes
         cols_clientes = ("ID", "Nome", "CPF", "Telefone", "Email")
         self.tree_clientes = ttk.Treeview(frame_clientes, columns=cols_clientes, show="headings", height=10)
         for col in cols_clientes:
@@ -174,7 +160,6 @@ class SistemaVendasApp:
             self.tree_clientes.column(col, width=150 if col !="ID" else 50, anchor="w")
         self.tree_clientes.pack(fill=tk.BOTH, expand=True, pady=10)
         
-        # Scrollbar para Treeview
         scrollbar_clientes = ttk.Scrollbar(self.tree_clientes, orient="vertical", command=self.tree_clientes.yview)
         self.tree_clientes.configure(yscrollcommand=scrollbar_clientes.set)
         scrollbar_clientes.pack(side="right", fill="y")
@@ -212,7 +197,7 @@ class SistemaVendasApp:
         for i in self.tree_clientes.get_children():
             self.tree_clientes.delete(i)
         try:
-            cursor = self.conn.cursor(dictionary=True) # dictionary=True para pegar por nome da coluna
+            cursor = self.conn.cursor(dictionary=True)
             cursor.execute("SELECT id, nome, cpf, telefone, email FROM clientes ORDER BY nome")
             clientes = cursor.fetchall()
             for cliente in clientes:
@@ -223,13 +208,11 @@ class SistemaVendasApp:
             if cursor:
                 cursor.close()
 
-    # --- Gerenciamento de Produtos ---
     def mostrar_tela_produtos(self):
         self.limpar_container_principal()
         frame_produtos = ttk.LabelFrame(self.container_principal, text="Gerenciamento de Produtos", padding=10)
         frame_produtos.pack(fill=tk.BOTH, expand=True)
 
-        # Formulário
         form_frame = ttk.Frame(frame_produtos, padding=10)
         form_frame.pack(fill=tk.X, pady=5)
 
@@ -238,7 +221,7 @@ class SistemaVendasApp:
         self.entry_produto_nome.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         ttk.Label(form_frame, text="Descrição:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.entry_produto_descricao = tk.Text(form_frame, width=40, height=3) # Usando tk.Text para descrição
+        self.entry_produto_descricao = tk.Text(form_frame, width=40, height=3)
         self.entry_produto_descricao.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
         ttk.Label(form_frame, text="Preço (R$):").grid(row=2, column=0, padx=5, pady=5, sticky="w")
@@ -254,7 +237,6 @@ class SistemaVendasApp:
         btn_adicionar_produto = ttk.Button(form_frame, text="Adicionar Produto", command=self.adicionar_produto)
         btn_adicionar_produto.grid(row=4, column=0, columnspan=2, pady=10)
 
-        # Treeview para listar produtos
         cols_produtos = ("ID", "Nome", "Preço (R$)", "Estoque", "Descrição")
         self.tree_produtos = ttk.Treeview(frame_produtos, columns=cols_produtos, show="headings", height=10)
         for col in cols_produtos:
@@ -270,7 +252,7 @@ class SistemaVendasApp:
 
     def adicionar_produto(self):
         nome = self.entry_produto_nome.get()
-        descricao = self.entry_produto_descricao.get("1.0", tk.END).strip() # Pega todo o texto
+        descricao = self.entry_produto_descricao.get("1.0", tk.END).strip()
         preco_str = self.entry_produto_preco.get()
         estoque_str = self.entry_produto_estoque.get()
 
@@ -316,24 +298,20 @@ class SistemaVendasApp:
             if cursor:
                 cursor.close()
 
-    # --- Gerenciamento de Pedidos ---
     def mostrar_tela_pedidos(self):
         self.limpar_container_principal()
         frame_pedidos = ttk.LabelFrame(self.container_principal, text="Gerenciamento de Pedidos", padding=10)
         frame_pedidos.pack(fill=tk.BOTH, expand=True)
 
-        # --- Seção Novo Pedido ---
         novo_pedido_frame = ttk.LabelFrame(frame_pedidos, text="Novo Pedido", padding=10)
         novo_pedido_frame.pack(fill=tk.X, pady=10)
 
-        # Selecionar Cliente
         ttk.Label(novo_pedido_frame, text="Cliente:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.combo_cliente_pedido = ttk.Combobox(novo_pedido_frame, state="readonly", width=37)
         self.combo_cliente_pedido.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         self.combo_cliente_pedido.bind("<<ComboboxSelected>>", self.selecionar_cliente_para_pedido)
         self.carregar_clientes_combobox()
 
-        # Adicionar Produto ao Pedido
         produto_add_frame = ttk.Frame(novo_pedido_frame)
         produto_add_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="ew")
 
@@ -345,7 +323,7 @@ class SistemaVendasApp:
         ttk.Label(produto_add_frame, text="Qtd:").grid(row=0, column=2, padx=5, pady=2, sticky="w")
         self.entry_qtd_produto_pedido = ttk.Entry(produto_add_frame, width=5)
         self.entry_qtd_produto_pedido.grid(row=0, column=3, padx=5, pady=2, sticky="w")
-        self.entry_qtd_produto_pedido.insert(0, "1") # Default quantity
+        self.entry_qtd_produto_pedido.insert(0, "1")
 
         btn_add_item_pedido = ttk.Button(produto_add_frame, text="Adicionar Item", command=self.adicionar_item_ao_pedido_atual)
         btn_add_item_pedido.grid(row=0, column=4, padx=10, pady=2)
@@ -353,7 +331,6 @@ class SistemaVendasApp:
         novo_pedido_frame.columnconfigure(1, weight=1)
         produto_add_frame.columnconfigure(1, weight=1)
 
-        # Treeview para itens do pedido atual
         cols_itens_pedido_atual = ("Produto", "Qtd", "Preço Unit.", "Subtotal")
         self.tree_itens_pedido_atual = ttk.Treeview(novo_pedido_frame, columns=cols_itens_pedido_atual, show="headings", height=5)
         for col in cols_itens_pedido_atual:
@@ -364,9 +341,7 @@ class SistemaVendasApp:
         
         scrollbar_itens_pedido = ttk.Scrollbar(self.tree_itens_pedido_atual, orient="vertical", command=self.tree_itens_pedido_atual.yview)
         self.tree_itens_pedido_atual.configure(yscrollcommand=scrollbar_itens_pedido.set)
-        # Não empacotar scrollbar aqui, pois treeview está no grid. Posicionar ao lado se necessário.
 
-        # Total e Botão Finalizar
         total_frame = ttk.Frame(novo_pedido_frame)
         total_frame.grid(row=3, column=0, columnspan=4, pady=10, sticky="e")
         ttk.Label(total_frame, text="Total do Pedido: R$", font=("Arial", 12, "bold")).pack(side=tk.LEFT, padx=5)
@@ -376,8 +351,6 @@ class SistemaVendasApp:
         btn_finalizar_pedido.grid(row=4, column=0, columnspan=4, pady=10)
         ttk.Style().configure("Accent.TButton", font=("Arial", 10, "bold"), padding=5)
 
-
-        # --- Seção Listar Pedidos ---
         listar_pedidos_frame = ttk.LabelFrame(frame_pedidos, text="Histórico de Pedidos", padding=10)
         listar_pedidos_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
@@ -394,14 +367,14 @@ class SistemaVendasApp:
         scrollbar_pedidos.pack(side="right", fill="y")
 
         self.listar_pedidos_registrados()
-        self.resetar_novo_pedido_form() # Garante que o form de novo pedido está limpo
+        self.resetar_novo_pedido_form()
 
     def carregar_clientes_combobox(self):
         try:
             cursor = self.conn.cursor(dictionary=True)
             cursor.execute("SELECT id, nome FROM clientes ORDER BY nome")
             clientes = cursor.fetchall()
-            self.clientes_map = {f"{c['nome']} (ID: {c['id']})": c['id'] for c in clientes} # Mapa para pegar ID
+            self.clientes_map = {f"{c['nome']} (ID: {c['id']})": c['id'] for c in clientes}
             self.combo_cliente_pedido['values'] = list(self.clientes_map.keys())
         except mysql.connector.Error as err:
             messagebox.showerror("Erro", f"Erro ao carregar clientes: {err}")
@@ -418,7 +391,6 @@ class SistemaVendasApp:
     def carregar_produtos_combobox(self):
         try:
             cursor = self.conn.cursor(dictionary=True)
-            # Mostrar apenas produtos com estoque > 0 (ou remover essa condição se quiser vender sem estoque)
             cursor.execute("SELECT id, nome, preco FROM produtos WHERE estoque > 0 ORDER BY nome") 
             produtos = cursor.fetchall()
             self.produtos_map = {f"{p['nome']} (R$ {p['preco']:.2f})": {'id': p['id'], 'preco': p['preco']} for p in produtos}
@@ -455,12 +427,8 @@ class SistemaVendasApp:
 
         produto_id = produto_info['id']
         preco_unitario = produto_info['preco']
-        nome_produto = produto_display_name.split(" (R$")[0] # Extrai nome
+        nome_produto = produto_display_name.split(" (R$")[0]
         subtotal = quantidade * preco_unitario
-
-        # Verificar se o produto já está na lista para evitar duplicidade ou somar quantidades
-        # Por simplicidade, vamos permitir adicionar o mesmo produto múltiplas vezes como itens separados.
-        # Para agrupar, seria necessário verificar se produto_id já existe em self.itens_pedido_atual e atualizar a quantidade.
 
         self.itens_pedido_atual.append({
             'produto_id': produto_id,
@@ -498,16 +466,14 @@ class SistemaVendasApp:
             return
 
         valor_total_pedido = float(self.total_pedido_atual.get())
-        cursor = None # Inicializar cursor
+        cursor = None
         try:
             cursor = self.conn.cursor()
-            # Inserir na tabela pedidos
             sql_pedido = "INSERT INTO pedidos (cliente_id, valor_total, data_pedido) VALUES (%s, %s, %s)"
             data_agora = datetime.now()
             cursor.execute(sql_pedido, (self.cliente_selecionado_pedido, valor_total_pedido, data_agora))
-            pedido_id = cursor.lastrowid # Pega o ID do pedido inserido
+            pedido_id = cursor.lastrowid
 
-            # Inserir na tabela itens_pedido e atualizar estoque
             sql_item_pedido = "INSERT INTO itens_pedido (pedido_id, produto_id, quantidade, preco_unitario) VALUES (%s, %s, %s, %s)"
             sql_update_estoque = "UPDATE produtos SET estoque = estoque - %s WHERE id = %s"
 
@@ -519,10 +485,10 @@ class SistemaVendasApp:
             messagebox.showinfo("Sucesso", f"Pedido Nº {pedido_id} finalizado com sucesso!")
             self.resetar_novo_pedido_form()
             self.listar_pedidos_registrados()
-            self.carregar_produtos_combobox() # Recarregar produtos pois o estoque mudou
+            self.carregar_produtos_combobox()
         
         except mysql.connector.Error as err:
-            self.conn.rollback() # Desfaz transação em caso de erro
+            self.conn.rollback()
             messagebox.showerror("Erro de Banco de Dados", f"Erro ao finalizar pedido: {err}")
         finally:
             if cursor:
@@ -567,12 +533,9 @@ class SistemaVendasApp:
                 cursor.close()
 
     def __del__(self):
-        """Fecha a conexão com o banco ao destruir o objeto."""
         if hasattr(self, 'conn') and self.conn and self.conn.is_connected():
             self.conn.close()
 
-
-# --- Ponto de Entrada da Aplicação ---
 if __name__ == "__main__":
     root_tk = tk.Tk()
     app = SistemaVendasApp(root_tk)
